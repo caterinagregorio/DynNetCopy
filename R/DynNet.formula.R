@@ -58,7 +58,7 @@
 #' \item{\code{knots}}{ argument indicates if necessary the place of knots (when placed manually with "manual"), default value is NULL}
 #' }
 #' 
-#' @param parameters a list of 3 arguments about parameters of the models (e.g., initial parameters, parameters one would like to fix, etc.): \describe{
+#' @param parameters a list of 3 arguments about parameters of the models (e.g., initial parameters, parameters one would like to fix, etc.) possibly created with \link{helperDynNetpar}: \describe{
 #' \item{\code{paras.ini}}{ indicates initial values for parameters, default values is NULL.}
 #' \item{\code{Fixed.para.indix}}{ indicates the positions of parameters to be constrained.}
 #' 
@@ -79,8 +79,6 @@
 #'
 #' \item{\code{MCnr}}{ number Quasi-Monte Carlo replicates for the integration over random effects}
 #' 
-#' \item{\code{MCnr2}}{ number Quasi-Monte Carlo replicates for the integration over random effects when computing the variances at the optimum, using Louis' principle (1982)}
-#' 
 #' \item{\code{type_int}}{ type of Monte Carlo integration method to use. Options are \describe{
 #'
 #'   \item{\code{'montecarlo'}}{Vanilla Monte Carlo sampling.}
@@ -98,13 +96,13 @@
 #' @param Time indicates the name of the covariate representing the time 
 #' @param subject indicates the name of the covariate representing the grouping structure
 #' @param data indicates the data frame containing all the variables for estimating the model.
-#' @param cholesky logical indicating if the variance covariance matrix is parameterized using the cholesky (TRUE, by default) or the correlation (FALSE)
+#' @param cholesky logical indicating if the variance covariance matrix is parameterized using the cholesky (TRUE by default) or the correlation (FALSE)
 #' @param Tentry name of the variable of entry time
 #' @param Event name of the variable of event time
 #' @param StatusEvent name of the variable of event status
 #' @param basehaz type of baseline hazard function
 #' @param seed seed for random generator
-#' @param TimeDiscretization a boolean indicating if the initial time has to be discretized (TRUE by default). When setting to FALSE, it allows to avoid discretization when running univariate model during parameter initialization.
+#' @param TimeDiscretization a boolean indicating if the initial time has to be discretized (FALSE by default). When setting to FALSE, it allows to avoid discretization when running univariate model during parameter initialization.
 #' @param predict_ui boolean indicating if bayesian estimates of random effects should be computed (FALSE by default)
 #' @param  \dots other optional arguments
 #' @details The vector of initial values paras.ini includes: the regression parameters on the initial level;
@@ -146,7 +144,6 @@
 #'                                 Fixed.para.values = paraFixeUser),
 #'               option = list(nproc = 1, print.info = TRUE,  MCnr = 10, 
 #'                             univarmaxiter = 7, epsa = 1e-5, epsb = 1e-4, epsd = 1e-2),
-#'               TimeDiscretization=FALSE,
 #'               Time = "time",
 #'               subject = "id",
 #'               data = data
@@ -176,7 +173,6 @@
 #'                                Fixed.para.values = paraFixeUser),
 #'              option = list(nproc = 2, print.info = TRUE, MCnr = 10, 
 #'                            univarmaxiter = 7, epsa = 1e-5, epsb = 1e-4, epsd = 1e-2),
-#'              TimeDiscretization=FALSE,
 #'              Time = "time",
 #'              subject = "id",
 #'              data = data
@@ -204,7 +200,6 @@
 #'                              Fixed.para.values = paraFixeUser),
 #'            option = list(nproc = 1, print.info = FALSE,  MCnr = 10, 
 #'                          univarmaxiter = 7, epsa = 1e-5, epsb = 1e-5, epsd = 1e-5),
-#'            TimeDiscretization=FALSE,
 #'            Time = "time",
 #'            subject = "id",
 #'            data = data
@@ -228,7 +223,6 @@
 #'                            Fixed.para.values = paraFixeUser),
 #'          option = list(nproc = 2, print.info = TRUE,  MCnr = 10, 
 #'                        univarmaxiter = 7, epsa = 1e-5, epsb = 1e-4, epsd = 1e-2),
-#'          TimeDiscretization=FALSE,
 #'          Time = "time",
 #'          subject = "id",
 #'          data = data
@@ -281,10 +275,7 @@ DynNet <- function(structural.model, measurement.model, parameters,
   if(is.null(option$makepred)){
     option$makepred <- F
   }
-  if(is.null(option$MCnr_pred)){
-    option$MCnr_pred <- 30
-  }
-  
+
 
   survival= FALSE
   if(!is.null(structural.model$fixed.survival)){
@@ -300,16 +291,23 @@ DynNet <- function(structural.model, measurement.model, parameters,
     }
   }
   
-  if(is.null(option$MCnr2)){
+  if(option$MCnr>0 & is.null(option$MCnr_pred)){
+    option$MCnr_pred <- 30
+  }else{
+    option$MCnr_pred <- 0
+  }
+  
+  if(is.null(option$MCnr2)){#number Quasi-Monte Carlo replicates for the integration over random effects when computing the variances at the optimum, using Louis' principle (1982). Not used here as this doesn't work
       option$MCnr2 <- 0
   }
+
   #if(is.null(option$type_int)){
   #  option$type_int <- "montecarlo"
   #}
   
-  if(is.null(option$parallel)){
-     option$parallel <- FALSE
-   }
+  # if(is.null(option$parallel)){
+  #   option$parallel <- FALSE
+  # }
   if(is.null(option$maxiter)){
     option$maxiter <- 100
   }
@@ -317,11 +315,6 @@ DynNet <- function(structural.model, measurement.model, parameters,
     option$univarmaxiter <- 25
   }
   if(is.null(option$nproc)){
-    option$nproc <- 1
-  }
-  
-  if(option$nproc>1 & option$parallel==F){
-    message("nproc argument is ignored because parallel=F")
     option$nproc <- 1
   }
 
@@ -416,7 +409,6 @@ DynNet <- function(structural.model, measurement.model, parameters,
     outcomes <- c(outcomes, outcomes_n)
     mapping.to.LP <- c(mapping.to.LP, rep(n,length(outcomes_n)))
   }
-  
   if(formative){
     outcomes <- as.character(sapply(outcomes,FUN = function(x)gsub("[()+]","",x),simplify = FALSE))
     for (n in 1:nD){
@@ -429,15 +421,14 @@ DynNet <- function(structural.model, measurement.model, parameters,
         if(is.null(outcomes_n2)) stop("at least one marker must be specified for each latent exogeneous process" )
         add <- ifelse(n==1,0,max(mapping.to.LP2))
         mapping.to.LP2 <- c(mapping.to.LP2, rep(l+add,length(outcomes_n2)))
-        }
+      }
       
     }
   }
-  if(length(unique(outcomes))!=length(outcomes)) stop("outcomes cannot be mapped to multiple latent processes")
   if(!all(outcomes%in% colnames)) stop("outcomes must be in the data")
-  nL <- ifelse(formative==T,max(mapping.to.LP2),NULL)
   K <- length(outcomes)
   all.Y<-seq(1,K)
+  nL <- ifelse(formative==T,max(mapping.to.LP2),NULL)
   
   fixed_DeltaX.model=strsplit(gsub("[[:space:]]","",as.character(fixed_DeltaX)),"~")[[3]]
   fixed_DeltaX.models<-strsplit(fixed_DeltaX.model,"[|]")[[1]]# chaque model d'effet fixe mais en vu de connaitre tous les pred.fixed du modele multi
@@ -453,7 +444,6 @@ DynNet <- function(structural.model, measurement.model, parameters,
       stop("There are too many latent processes compared to the indicated number of markers")
     }
   }
-  
   
   ### pre-traitement of fixed effect on initial levels of processes
   if(is.null(fixed_X0)){
@@ -638,10 +628,17 @@ DynNet <- function(structural.model, measurement.model, parameters,
     }
   }
 
+  if(!is.null(nL)& class(parameters)=="DynNetinit")stop("With formative latent model structure parameters argument needs to be a object of class DynNetinit")
+  # no formative, we 
+  if(is.null(nL)& class(parameters)=="DynNetinit"){
+    paras.ini <- 
+    paraFixeUser <- 
+    indexparaFixeUser <- 
+  }
   #### call of DynNet.default function to compute estimation and predictions
   est <- DynNet.default(fixed_X0.models = fixed_X0.models, fixed_DeltaX.models = fixed_DeltaX.models, randoms_X0.models = randoms_X0.models, 
                         randoms_DeltaX.models = randoms_DeltaX.models, mod_trans.model = mod_trans.model, DeltaT = DeltaT , outcomes = outcomes,
-                        nD = nD, mapping.to.LP = mapping.to.LP,nL=nL,mapping.to.LP2=mapping.to.LP2, link = link, knots = knots, subject = subject, data = data, Time = Time, 
+                        nD = nD, mapping.to.LP = mapping.to.LP, nL=nL,mapping.to.LP2=mapping.to.LP2,link = link, knots = knots, subject = subject, data = data, Time = Time, 
                         predict_ui = predict_ui, Survdata = Survdata, basehaz = basehaz, knots_surv = knots_surv, assoc = assoc, truncation = truncation, 
                         fixed.survival.models = fixed.survival.models, interactionY.survival.models = interactionY.survival.models,
                         makepred = option$makepred, MCnr_pred = option$MCnr_pred, MCnr = option$MCnr, MCnr2 = option$MCnr2, type_int = option$type_int, sequence = sequence, ind_seq_i = ind_seq_i, nmes = nmes, cholesky = cholesky,
