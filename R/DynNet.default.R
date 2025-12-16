@@ -118,7 +118,6 @@ DynNet.default <- function(fixed_X0.models, fixed_DeltaX.models, randoms_X0.mode
   
   # ### creation of arguments:  Initialising parameters
   if(K>1 & is.null(paras.ini)){
-    
     paras.ini <- f_paras.ini(data = data, outcomes = outcomes, mapped.to.LP = mapping.to.LP, fixed_X0.models = fixed_X0.models, fixed_DeltaX.models = fixed_DeltaX.models,  
                              randoms_DeltaX.models = randoms_DeltaX.models, nb_RE = nb_RE, mod_trans.model = mod_trans.model, 
                              subject = subject, MCnr = MCnr, type_int = type_int,
@@ -126,15 +125,32 @@ DynNet.default <- function(fixed_X0.models, fixed_DeltaX.models, randoms_X0.mode
                              DeltaT = DeltaT, maxiter = univarmaxiter, epsd = epsd, nproc = nproc, print.info = print.info, 
                              TimeDiscretization = TimeDiscretization, fixed.survival.models = fixed.survival.models, 
                              Tentry = Tentry, Event = Event, StatusEvent = StatusEvent, assocT = assocT, truncation = truncation)
+    
+    if(!is.null(nL)){#formative structure
+      w <- rep(1,nL)/rle(mapping.to.LP2)$length
+      paras.ini <- c(paras.ini,w)
+    }
   }
   npara_k <- sapply(outcomes, function(x) length(grep(x, names(data.frame(data_F$Mod.MatrixY)))))
   
-  paras <- Parametre(K=K, nD = nD, vec_ncol_x0n, n_col_x, nb_RE, indexparaFixeUser = indexparaFixeUser, 
-                     paraFixeUser = paraFixeUser, L = L, ncolMod.MatrixY = ncolMod.MatrixY, paras.ini=paras.ini, 
-                     link = link, npara_k = npara_k, 
-                     Survdata = Survdata, basehaz = basehaz, knots_surv = knots_surv, assoc = assoc, truncation = truncation,
-                     data = data, outcomes = outcomes, df= data_F$df, nE = data_F$nE, np_surv = data_F$np_surv, 
-                     fixed.survival.models =fixed.survival.models, interactionY.survival.models = interactionY.survival.models, nYsurv = data_F$nYsurv)
+  if(!is.null(nL)){
+    #return(list(paras=paras,K=K, nD=nD,nL=nL, mapping.to.LP=mapping.to.LP,mapping.to.LP2=mapping.to.LP2))
+    
+    paras <- Parametre2(K=K, nD = nD,mapping.to.LP=mapping.to.LP,nL=nL,mapping.to.LP2=mapping.to.LP2, vec_ncol_x0n, n_col_x, nb_RE, indexparaFixeUser = indexparaFixeUser, 
+                        paraFixeUser = paraFixeUser, L = L, ncolMod.MatrixY = ncolMod.MatrixY, paras.ini=paras.ini, 
+                        link = link, npara_k = npara_k, 
+                        Survdata = Survdata, basehaz = basehaz, knots_surv = knots_surv, assoc = assoc, truncation = truncation,
+                        data = data, outcomes = outcomes, df= data_F$df, nE = data_F$nE, np_surv = data_F$np_surv, 
+                        fixed.survival.models =fixed.survival.models, interactionY.survival.models = interactionY.survival.models, nYsurv = data_F$nYsurv,data_F=data_F)
+  }else{
+    paras <- Parametre(K=K, nD = nD, vec_ncol_x0n, n_col_x, nb_RE, indexparaFixeUser = indexparaFixeUser, 
+                       paraFixeUser = paraFixeUser, L = L, ncolMod.MatrixY = ncolMod.MatrixY, paras.ini=paras.ini, 
+                       link = link, npara_k = npara_k, 
+                       Survdata = Survdata, basehaz = basehaz, knots_surv = knots_surv, assoc = assoc, truncation = truncation,
+                       data = data, outcomes = outcomes, df= data_F$df, nE = data_F$nE, np_surv = data_F$np_surv, 
+                       fixed.survival.models =fixed.survival.models, interactionY.survival.models = interactionY.survival.models, nYsurv = data_F$nYsurv)
+  }
+  
   if_link <- rep(0,K)
   for(k in 1:K){
     if(!link[k] %in%c("linear","thresholds")){
