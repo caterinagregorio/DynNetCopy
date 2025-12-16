@@ -444,8 +444,8 @@ Parametre2 <- function(K,
   # 
   
   #vec_alpha_ij
-  vec_alpha_ij_trans <-matrix(vec_alpha_ij,nrow=nD,byrow = T)
-  indexFixe_alpha_mu <- intersect(which(grepl("alpha_mu",names(map_p))  & !grepl("alpha_mu0",names(map_p))),indexFixe)
+  vec_alpha_ij_trans <-invert_vec_alpha_ij(matrix(vec_alpha_ij,nrow=nD,byrow = T),mappingLP2LP1_weights)
+  
   
   
   paras_trans <- c(
