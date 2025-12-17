@@ -631,9 +631,9 @@ DynNet <- function(structural.model, measurement.model, parameters,
   if(!is.null(nL)& class(parameters)=="DynNetinit")stop("With formative latent model structure parameters argument needs to be a object of class DynNetinit")
   # no formative, we 
   if(is.null(nL)& class(parameters)=="DynNetinit"){
-    paras.ini <- 
-    paraFixeUser <- 
-    indexparaFixeUser <- 
+    paras.ini <- revertparskeleton(paras.ini)
+    paraFixeUser  <- revertparskeleton(paraFixeUser)
+    indexparaFixeUser <- which(revertparskeleton(indexparaFixeUser))
   }
   #### call of DynNet.default function to compute estimation and predictions
   est <- DynNet.default(fixed_X0.models = fixed_X0.models, fixed_DeltaX.models = fixed_DeltaX.models, randoms_X0.models = randoms_X0.models, 

@@ -385,7 +385,7 @@ helperDynNetpar <- function(structural.model, measurement.model, Time, Tentry ="
                        randoms_DeltaX.models = randoms_DeltaX.models, mod_trans.model = mod_trans.model, 
                        outcomes = outcomes, nD = nD, link=link, knots = knots, zitr= zitr, ide =  ide0, 
                        Time = Time, Survdata = Survdata, basehaz = basehaz, fixed.survival.models =fixed.survival.models, 
-                       interactionY.survival.models = interactionY.survival.models, DeltaT=DeltaT, assoc = assoc, truncation = truncation)
+                       interactionY.survival.models = interactionY.survival.models, DeltaT=DeltaT, assoc = assocT, truncation = truncation)
   
   
   K <- data_F$K #  number of markers
@@ -395,12 +395,12 @@ helperDynNetpar <- function(structural.model, measurement.model, Time, Tentry ="
   L <- ncol(data_F$modA_mat)
   ncolMod.MatrixY <- ncol(data_F$Mod.MatrixY)
   
-  assocT <- NULL
-  if(!is.null(assoc)){
-    assocT <- ifelse(assoc==0, "r.intercept",ifelse(assoc==1, "r.slope",ifelse(assoc==2, "r.intercept/slope",ifelse(
-      assoc==3, "c.value",ifelse(assoc==4, "c.slope","c.value/slope")
-    ))))
-  }
+  # assocT <- NULL
+  # if(!is.null(assoc)){
+  #   assocT <- ifelse(assoc==0, "r.intercept",ifelse(assoc==1, "r.slope",ifelse(assoc==2, "r.intercept/slope",ifelse(
+  #     assoc==3, "c.value",ifelse(assoc==4, "c.slope","c.value/slope")
+  #   ))))
+  # }
   
   par_obj <- parskeleton(
     K = K,
@@ -421,7 +421,7 @@ helperDynNetpar <- function(structural.model, measurement.model, Time, Tentry ="
     Survdata = Survdata,
     basehaz = basehaz,
     knots_surv = knots_surv,
-    assoc = assoc,
+    assoc = assocT,
     truncation = truncation,
     data = data,
     outcomes = outcomes,

@@ -92,75 +92,25 @@ parskeleton <- function(K,
   
   #Links
   ParaTransformY <- rep(NA,ncolMod.MatrixY)
-
+  #Survival
   para_surv <- NULL
   para_basehaz <- NULL
-  knots_surv <- c(0, 0) # changer !!
-  
-  #Survival
-  if (!is.null(Survdata)) {
-    cov_surv <- unique(unlist(strsplit(fixed.survival.models, "[+*]")))
+  if(!is.null(Survdata)){
+    np_baz <- ifelse(basehaz=="Weibull",2, 0)# changer 0!!
     
-    if (nE == 2) {
-      tmat <- trans.comprisk(2, names = c("event-free", "event1", "event2"))
+    for (jj in 1:nE){
+      para_basehaz <- c(para_basehaz,rep(NA,np_baz)) 
+      para_surv <- rep(para_surv,  np_surv[jj]) 
       
-      Survdata$stat1 <- as.numeric(Survdata$StatusEvent == 1)
-      Survdata$stat2 <- as.numeric(Survdata$StatusEvent == 2)
-      Survdatalong <- msprep(
-        time = c(NA, "Event", "Event"),
-        status = c(NA, "stat1", "stat2"),
-        data = Survdata,
-        keep = cov_surv,
-        trans = tmat
-      )
-      dim0 <- dim(Survdatalong)[2]
-      Survdatalong <- expand.covs(Survdatalong, cov_surv)
-      cov_survexpanded <- paste(names(Survdatalong)[(dim0 + 1):dim(Survdatalong)[2]], collapse =
-                                  '+')
-      form <- as.formula(
-        paste(
-          "Surv(time, status) ~ ",
-          cov_survexpanded,
-          "+ factor(trans)+ strata(trans)",
-          sep = ""
-        )
-      )
-      mod_surv <- survreg(form, data = Survdatalong, dist = "weibull")
-      
-      #   1/(survreg's scale)  =    rweibull shape a
-      #   exp(survreg's intercept) = rweibull scale b
-      # (a/b) (x/b)^(a-1) shape a, scale b
-      para_basehaz <- c(
-        1 / (mod_surv$coefficients[["(Intercept)"]]),
-        exp(mod_surv$icoef[2]),
-        1 / (mod_surv$coefficients[["(Intercept)"]] + mod_surv$coefficients[["factor(trans)2"]]),
-        exp(mod_surv$icoef[3])
-      )
-      n1 <- 1 + np_surv[1] - 1 + ifelse(assoc %in% c(0, 1, 3, 4), 1, 2) *
-        nD
-      para_surv <- c(
-        mod_surv$coefficients[2:(1 + np_surv[1] - 1)],
-        rep(0, ifelse(assoc %in% c(0, 1, 3, 4), 1, 2) * nD),
-        mod_surv$coefficients[(n1):(n1 - 1 + np_surv[1] -
-                                      1)],
-        rep(0, ifelse(assoc %in% c(0, 1, 3, 4), 1, 2) * nD)
-      )
-      
-    } else if (nE == 1) {
-      form <- as.formula(paste("Surv(Event, StatusEvent) ~ ", cov_surv, sep =
-                                 ""))
-      mod_surv <- survreg(form, data = Survdata, dist = "weibull")
-      para_basehaz <- c(1 / (mod_surv$coefficients[["(Intercept)"]]), exp(mod_surv$icoef[2]))
-      para_surv <- c(mod_surv$coefficients[2:(1 + np_surv - 1)], rep(0, ifelse(assoc %in%
-                                                                                 c(0, 1, 3, 4), 1, 2) * nD))
     }
-    p <- p + length(para_basehaz) + length(para_surv)
-    np_baz <- length(para_basehaz) / nE
-   
-     if (!is.null(interactionY.survival.models)) {
-      browser()
-    }
+    if(basehaz=="Splines") cat('add number of parameters for splines in p and para_surv')
+    if(basehaz=="Splines") cat('Define knots_surv para_basehaz')
+    
   }
+  
+
+  
+  
   
   #matrix version
   vec_alpha_ij_m <- matrix(vec_alpha_ij,nrow=nD,byrow = T)
@@ -183,3 +133,16 @@ parskeleton <- function(K,
               Fixed.para.values = par_obj)
 }
 
+revertparskeleton <- function(par_obj){
+  names <- names(par_obj)
+  par <- c(par_obj$baseline_par,
+           par_obj$mixed_par,
+           as.numeric(par_obj$random_par[lower.tri(par_obj$random_par,diag=T)]),
+           t(as.numeric(par_obj$transition_par)))
+  if("stocherr_par"%in%names){
+    par <- c(par,par_obj$stocherr_par)
+  }
+  par <- c(par,par_obj$markers_par,par_obj$links_par,par_obj$survbase_par,
+           par_obj$survcov_par,par_obj$formative_weights)
+  return(par)
+}
